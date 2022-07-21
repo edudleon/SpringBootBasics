@@ -5,10 +5,11 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 
 @Controller
-@RequestMapping("/result")
+@RequestMapping("/home/result")
 public class ResultController {
 
-    public ResultController() { }
+    public ResultController() {
+    }
 
     @GetMapping()
     public String getResultPage() {

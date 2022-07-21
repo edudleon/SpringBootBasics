@@ -5,11 +5,14 @@ import com.udacity.jwdnd.course1.cloudstorage.services.CredentialService;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 @Controller
-@RequestMapping("/credentials")
+@RequestMapping("/home/credentials")
 public class CredentialController {
 
     CredentialService credentialService;
@@ -19,46 +22,46 @@ public class CredentialController {
     }
 
     @PostMapping
-    public String createOrUpdateCredential(Authentication authentication, RedirectAttributes redirectAttributes, CredentialForm credentialForm, Model model){
+    public String createOrUpdateCredential(Authentication authentication, RedirectAttributes redirectAttributes, CredentialForm credentialForm, Model model) {
         redirectAttributes.addFlashAttribute("activeTab", "credentials");
-        if(credentialForm.getCredentialId() == null){
-            try{
+        if (credentialForm.getCredentialId() == null) {
+            try {
                 Integer result = credentialService.createCredential(credentialForm, authentication.getName());
-                if(result > 0){
+                if (result > 0) {
                     redirectAttributes.addFlashAttribute("success", true);
                     redirectAttributes.addFlashAttribute("message", "New credential created");
-                }else {
+                } else {
                     redirectAttributes.addFlashAttribute("success", false);
                     redirectAttributes.addFlashAttribute("message", "Error while creating credential.");
                 }
-            }catch(Exception e){
+            } catch (Exception e) {
                 redirectAttributes.addFlashAttribute("success", false);
                 redirectAttributes.addFlashAttribute("message", "Error while creating credential.");
             }
-        }else{
-            try{
+        } else {
+            try {
                 Integer result = credentialService.updateCredential(credentialForm);
-                if(result > 0){
+                if (result > 0) {
                     redirectAttributes.addFlashAttribute("success", true);
                     redirectAttributes.addFlashAttribute("message", "Credential successfully updated");
-                }else {
+                } else {
                     redirectAttributes.addFlashAttribute("success", false);
                     redirectAttributes.addFlashAttribute("message", "Error while updating credential.");
                 }
-            }catch(Exception e){
+            } catch (Exception e) {
                 redirectAttributes.addFlashAttribute("success", false);
                 redirectAttributes.addFlashAttribute("message", "Error while updating credential.");
             }
         }
 
-        return "redirect:/result";
+        return "redirect:/home/result";
     }
 
     @GetMapping("/delete/{credentialId}")
-    public String deleteCredential(Authentication authentication, RedirectAttributes redirectAttributes, Model model,  @PathVariable("credentialId") Long credentialId){
+    public String deleteCredential(Authentication authentication, RedirectAttributes redirectAttributes, Model model, @PathVariable("credentialId") Long credentialId) {
         credentialService.deleteCredential(credentialId);
         redirectAttributes.addFlashAttribute("success", true);
         redirectAttributes.addFlashAttribute("message", "Credential deleted");
-        return "redirect:/result";
+        return "redirect:/home/result";
     }
 }
