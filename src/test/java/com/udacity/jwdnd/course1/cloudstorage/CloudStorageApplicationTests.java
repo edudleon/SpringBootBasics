@@ -1,5 +1,9 @@
 package com.udacity.jwdnd.course1.cloudstorage;
 
+import com.udacity.jwdnd.course1.cloudstorage.entity.Credential;
+import com.udacity.jwdnd.course1.cloudstorage.entity.Note;
+import com.udacity.jwdnd.course1.cloudstorage.services.CredentialService;
+import com.udacity.jwdnd.course1.cloudstorage.services.NoteService;
 import io.github.bonigarcia.wdm.WebDriverManager;
 import org.junit.jupiter.api.*;
 import org.openqa.selenium.By;
@@ -8,10 +12,12 @@ import org.openqa.selenium.WebElement;
 import org.openqa.selenium.chrome.ChromeDriver;
 import org.openqa.selenium.support.ui.ExpectedConditions;
 import org.openqa.selenium.support.ui.WebDriverWait;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.web.server.LocalServerPort;
 
 import java.io.File;
+import java.util.List;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 class CloudStorageApplicationTests {
@@ -20,6 +26,12 @@ class CloudStorageApplicationTests {
     private int port;
 
     private WebDriver driver;
+
+    @Autowired
+    private CredentialService credentialService;
+
+    @Autowired
+    private NoteService noteService;
 
     @BeforeAll
     static void beforeAll() {
@@ -198,5 +210,237 @@ class CloudStorageApplicationTests {
 
     }
 
+    @Test
+    public void testAnonymousHomeAccess() {
+        //Go to login page and save state
+        driver.get("http://localhost:" + this.port + "/login");
+        String initialUrl = driver.getCurrentUrl();
+        //try to go to home without loggin and retrieve url, should redirect to login
+        driver.get("http://localhost:" + this.port + "/home");
+        String finalUrl = driver.getCurrentUrl();
+        Assertions.assertEquals(initialUrl, finalUrl);
+    }
+
+    @Test
+    public void testLoggedInHomeAccess() {
+        doMockSignUp("HomeAccess", "Test", "HAT", "123");
+        doLogIn("HAT", "123");
+
+        WebDriverWait webDriverWait = new WebDriverWait(driver, 2);
+        // Check if we have been redirected to the home page
+        Assertions.assertEquals("http://localhost:" + this.port + "/home", driver.getCurrentUrl());
+
+        //logout should redirect to login
+        WebElement logoutButton = driver.findElement(By.id("home-logout-button"));
+        logoutButton.click();
+        Assertions.assertEquals("http://localhost:" + this.port + "/login?logout", driver.getCurrentUrl());
+
+        //verifies home is no longer accesible
+        driver.get("http://localhost:" + this.port + "/home");
+        String finalUrl = driver.getCurrentUrl();
+        Assertions.assertEquals("http://localhost:" + this.port + "/login", finalUrl);
+    }
+
+    @Test
+    public void testNotesAddFlow() {
+        doMockSignUp("HomeAccess", "Test", "NAT", "123");
+        doLogIn("NAT", "123");
+
+        //initiate notes module
+        WebDriverWait webDriverWait = new WebDriverWait(driver, 100);
+        goToNotesModule(webDriverWait);
+
+        //Create note
+        String noteTitle = "AutomatedTestTitle";
+        fillNoteFormSubmitAndRedirectHome(webDriverWait, noteTitle, "Test Description");
+
+        //Validate notes table content
+        WebElement notesTab = driver.findElement(By.id("nav-notes-tab"));
+        notesTab.click();
+        webDriverWait.until(ExpectedConditions.visibilityOfElementLocated(By.id("noteTable")));
+        WebElement notesTable = driver.findElement(By.id("noteTable"));
+        Assertions.assertTrue(notesTable.getText().contains(noteTitle));
+    }
+
+    private void goToNotesModule(WebDriverWait webDriverWait) {
+        WebElement notesTab = driver.findElement(By.id("nav-notes-tab"));
+        notesTab.click();
+        webDriverWait.until(ExpectedConditions.visibilityOfElementLocated(By.id("new-note-button")));
+        WebElement newNoteButton = driver.findElement(By.id("new-note-button"));
+        newNoteButton.click();
+    }
+
+    private void fillNoteFormSubmitAndRedirectHome(WebDriverWait webDriverWait, String noteTitle, String noteDescription) {
+        //Fill notes form
+        webDriverWait.until(ExpectedConditions.visibilityOfElementLocated(By.id("note-title")));
+        WebElement noteTitleInput = driver.findElement(By.id("note-title"));
+        noteTitleInput.clear();
+        noteTitleInput.sendKeys(noteTitle);
+        WebElement noteTitleDescription = driver.findElement(By.id("note-description"));
+        noteTitleDescription.clear();
+        noteTitleDescription.sendKeys(noteDescription);
+
+        //Submit to create note should redirect to /home/result with success
+        webDriverWait.until(ExpectedConditions.elementToBeClickable(By.id("noteSubmitModal"))).click();
+        webDriverWait.until(ExpectedConditions.titleContains("Result"));
+        Assertions.assertTrue(driver.getPageSource().contains("Success"));
+        WebElement redirectButton = driver.findElement(By.id("success-redirect"));
+        redirectButton.click();
+    }
+
+    @Test
+    public void testNotesEditFlow() {
+        doMockSignUp("HomeAccess", "Test", "NET", "123");
+        doLogIn("NET", "123");
+
+        //initiate notes module
+        WebDriverWait webDriverWait = new WebDriverWait(driver, 100);
+        goToNotesModule(webDriverWait);
+
+        //Create note
+        String noteTitle = "AutomatedTestTitle";
+        fillNoteFormSubmitAndRedirectHome(webDriverWait, noteTitle, "Test Description");
+        Note originalNote = noteService.getNotesByUser("NET").get(0);
+
+        //edit note
+        WebElement notesTab = driver.findElement(By.id("nav-notes-tab"));
+        notesTab.click();
+        webDriverWait.until(ExpectedConditions.visibilityOfElementLocated(By.id("noteTable")));
+        List<WebElement> editButtons = driver.findElements(By.id("note-edit-button"));
+        editButtons.get(0).click();
+        fillNoteFormSubmitAndRedirectHome(webDriverWait, "UpdatedNoteTitle", "Test Description");
+        Note updatedNote = noteService.getNotesByUser("NET").get(0);
+        Assertions.assertTrue((originalNote.getNoteId() == updatedNote.getNoteId() && !originalNote.getNoteTitle().equals(updatedNote.getNoteTitle())));
+    }
+
+    @Test
+    public void testNotesDeleteFlow() {
+        doMockSignUp("HomeAccess", "Test", "NDT", "123");
+        doLogIn("NDT", "123");
+
+        //initiate notes module
+        WebDriverWait webDriverWait = new WebDriverWait(driver, 100);
+        goToNotesModule(webDriverWait);
+
+        //Create notes
+        fillNoteFormSubmitAndRedirectHome(webDriverWait, "AutomatedTestTitle", "Test Description");
+        goToNotesModule(webDriverWait);
+        fillNoteFormSubmitAndRedirectHome(webDriverWait, "ToDeleteTestTitle", "Test Description");
+
+        List<Note> preDeleteNotes = noteService.getNotesByUser("NDT");
+
+        //Delete second note
+        WebElement notesTab = driver.findElement(By.id("nav-notes-tab"));
+        notesTab.click();
+        webDriverWait.until(ExpectedConditions.visibilityOfElementLocated(By.id("noteTable")));
+        List<WebElement> deleteButtons = driver.findElements(By.id("note-delete-button"));
+
+        deleteButtons.get(1).click();
+        webDriverWait.until(ExpectedConditions.titleContains("Result"));
+        Assertions.assertTrue(driver.getPageSource().contains("Success"));
+        List<Note> postDeleteNotes = noteService.getNotesByUser("NDT");
+        Assertions.assertTrue(preDeleteNotes.size() > postDeleteNotes.size());
+    }
+
+    @Test
+    public void testCredentialsAddFlow() {
+        doMockSignUp("HomeAccess", "Test", "CAT", "123");
+        doLogIn("CAT", "123");
+
+        //initiate credential module
+        WebDriverWait webDriverWait = new WebDriverWait(driver, 100);
+        goToCredentialsModule(webDriverWait);
+
+        String credentialUrl = "https://www.edeleontest.com";
+        fillCredentialFormSubmitAndRedirectHome(webDriverWait, credentialUrl, "edeleon", "TestPass123");
+
+        //Validate notes table content
+        WebElement credentialsTab = driver.findElement(By.id("nav-credentials-tab"));
+        credentialsTab.click();
+        webDriverWait.until(ExpectedConditions.visibilityOfElementLocated(By.id("credentialTable")));
+        WebElement notesTable = driver.findElement(By.id("credentialTable"));
+        Assertions.assertTrue(notesTable.getText().contains(credentialUrl));
+    }
+
+    private void goToCredentialsModule(WebDriverWait webDriverWait) {
+        WebElement credentialsTab = driver.findElement(By.id("nav-credentials-tab"));
+        credentialsTab.click();
+        webDriverWait.until(ExpectedConditions.visibilityOfElementLocated(By.id("new-credential-button")));
+        WebElement newCredentialButton = driver.findElement(By.id("new-credential-button"));
+        newCredentialButton.click();
+    }
+
+    private void fillCredentialFormSubmitAndRedirectHome(WebDriverWait webDriverWait, String url, String username, String password) {
+        //Fill credentials form
+        webDriverWait.until(ExpectedConditions.visibilityOfElementLocated(By.id("credential-url")));
+        WebElement credentialUrlInput = driver.findElement(By.id("credential-url"));
+        credentialUrlInput.clear();
+        credentialUrlInput.sendKeys(url);
+        WebElement credentialUsernameInput = driver.findElement(By.id("credential-username"));
+        credentialUsernameInput.clear();
+        credentialUsernameInput.sendKeys(username);
+        WebElement credentialPasswordInput = driver.findElement(By.id("credential-password"));
+        credentialPasswordInput.clear();
+        credentialPasswordInput.sendKeys(password);
+
+        //Submit to create credential should redirect to /home/result with success
+        webDriverWait.until(ExpectedConditions.elementToBeClickable(By.id("credentialSubmitModal"))).click();
+        webDriverWait.until(ExpectedConditions.titleContains("Result"));
+        Assertions.assertTrue(driver.getPageSource().contains("Success"));
+        WebElement redirectButton = driver.findElement(By.id("success-redirect"));
+        redirectButton.click();
+    }
+
+    @Test
+    public void testEditCredentialFlow() {
+        doMockSignUp("HomeAccess", "Test", "CET", "123");
+        doLogIn("CET", "123");
+
+        //initiate credential module
+        WebDriverWait webDriverWait = new WebDriverWait(driver, 100);
+        goToCredentialsModule(webDriverWait);
+
+        String credentialUrl = "https://www.edeleontest.com";
+        fillCredentialFormSubmitAndRedirectHome(webDriverWait, credentialUrl, "edeleon", "TestPass123");
+        Credential originalCredential = credentialService.getCredentialsByUser("CET").get(0);
+
+        //Edit credenctal
+        WebElement credentialsTab = driver.findElement(By.id("nav-credentials-tab"));
+        credentialsTab.click();
+        webDriverWait.until(ExpectedConditions.visibilityOfElementLocated(By.id("credentialTable")));
+        List<WebElement> editButtons = driver.findElements(By.id("cred-edit-button"));
+        editButtons.get(0).click();
+        fillCredentialFormSubmitAndRedirectHome(webDriverWait, credentialUrl, "updatededeleon", "TestPass123");
+        Credential updatedCredential = credentialService.getCredentialsByUser("CET").get(0);
+        Assertions.assertTrue((originalCredential.getCredentialId() == updatedCredential.getCredentialId() && !originalCredential.getUsername().equals(updatedCredential.getUsername())));
+
+    }
+
+    @Test
+    public void testDeleteCredentialFlow() {
+        doMockSignUp("HomeAccess", "Test", "CDT", "123");
+        doLogIn("CDT", "123");
+
+        //initiate credential module
+        WebDriverWait webDriverWait = new WebDriverWait(driver, 100);
+        goToCredentialsModule(webDriverWait);
+
+        String credentialUrl = "https://www.edeleontest.com";
+        fillCredentialFormSubmitAndRedirectHome(webDriverWait, credentialUrl, "edeleon", "TestPass123");
+        goToCredentialsModule(webDriverWait);
+        fillCredentialFormSubmitAndRedirectHome(webDriverWait, credentialUrl, "testDelete", "TestPass123");
+
+        List<Credential> preDeleteCredentialList = credentialService.getCredentialsByUser("CDT");
+        WebElement credentialsTab = driver.findElement(By.id("nav-credentials-tab"));
+        credentialsTab.click();
+        webDriverWait.until(ExpectedConditions.visibilityOfElementLocated(By.id("credentialTable")));
+        List<WebElement> deleteButtons = driver.findElements(By.id("cred-delete-button"));
+
+        deleteButtons.get(1).click();
+        webDriverWait.until(ExpectedConditions.titleContains("Result"));
+        Assertions.assertTrue(driver.getPageSource().contains("Success"));
+        List<Credential> postDeleteCredentialList = credentialService.getCredentialsByUser("CDT");
+        Assertions.assertTrue(preDeleteCredentialList.size() > postDeleteCredentialList.size());
+    }
 
 }
