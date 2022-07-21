@@ -43,7 +43,7 @@ public class FileController {
             }
         } catch (Exception e) {
             redirectAttributes.addFlashAttribute("success", false);
-            redirectAttributes.addFlashAttribute("message", "Error while uploading file.");
+            redirectAttributes.addFlashAttribute("message", "Error while uploading file: " + e.getMessage());
         }
         return "redirect:/home/result";
     }

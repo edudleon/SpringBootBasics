@@ -7,6 +7,9 @@ import java.util.List;
 
 @Mapper
 public interface FileMapper {
+    @Select("SELECT * FROM FILES WHERE (userid = #{userId} and filename = #{fileName})")
+    File findFileByUserIdAndName(Integer userId, String fileName);
+
     @Select("SELECT * FROM FILES WHERE fileId = #{fileId}")
     File findFileById(Long fileId);
 
