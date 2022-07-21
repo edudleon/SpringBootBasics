@@ -19,25 +19,42 @@ public class CredentialController {
     }
 
     @PostMapping
-    public String createCredential(Authentication authentication, RedirectAttributes redirectAttributes, CredentialForm credentialForm, Model model){
+    public String createOrUpdateCredential(Authentication authentication, RedirectAttributes redirectAttributes, CredentialForm credentialForm, Model model){
         redirectAttributes.addFlashAttribute("activeTab", "credentials");
-        try{
-            Integer result = credentialService.createCredential(credentialForm, authentication.getName());
-            if(result > 0){
-                redirectAttributes.addFlashAttribute("success", true);
-                redirectAttributes.addFlashAttribute("message", "New credential created");
-            }else {
+        if(credentialForm.getCredentialId() == null){
+            try{
+                Integer result = credentialService.createCredential(credentialForm, authentication.getName());
+                if(result > 0){
+                    redirectAttributes.addFlashAttribute("success", true);
+                    redirectAttributes.addFlashAttribute("message", "New credential created");
+                }else {
+                    redirectAttributes.addFlashAttribute("success", false);
+                    redirectAttributes.addFlashAttribute("message", "Error while creating credential.");
+                }
+            }catch(Exception e){
                 redirectAttributes.addFlashAttribute("success", false);
                 redirectAttributes.addFlashAttribute("message", "Error while creating credential.");
             }
-        }catch(Exception e){
-            redirectAttributes.addFlashAttribute("success", false);
-            redirectAttributes.addFlashAttribute("message", "Error while creating credential.");
+        }else{
+            try{
+                Integer result = credentialService.updateCredential(credentialForm);
+                if(result > 0){
+                    redirectAttributes.addFlashAttribute("success", true);
+                    redirectAttributes.addFlashAttribute("message", "Credential successfully updated");
+                }else {
+                    redirectAttributes.addFlashAttribute("success", false);
+                    redirectAttributes.addFlashAttribute("message", "Error while updating credential.");
+                }
+            }catch(Exception e){
+                redirectAttributes.addFlashAttribute("success", false);
+                redirectAttributes.addFlashAttribute("message", "Error while updating credential.");
+            }
         }
+
         return "redirect:/result";
     }
 
-    @GetMapping("/{credentialId}")
+    @GetMapping("/delete/{credentialId}")
     public String deleteCredential(Authentication authentication, RedirectAttributes redirectAttributes, Model model,  @PathVariable("credentialId") Long credentialId){
         credentialService.deleteCredential(credentialId);
         redirectAttributes.addFlashAttribute("success", true);

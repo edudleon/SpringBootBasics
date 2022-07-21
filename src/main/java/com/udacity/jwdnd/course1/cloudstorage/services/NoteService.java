@@ -23,6 +23,13 @@ public class NoteService {
         return noteMapper.insert(new Note(null, note.getNoteTitle(), note.getNoteDescription(), userMapper.getUser(userName).getUserId()));
     }
 
+    public int updateNote(NoteForm note){
+       Note originalNote = noteMapper.findNoteById(note.getNoteId());
+       originalNote.setNoteTitle(note.getNoteTitle());
+       originalNote.setNoteDescription(note.getNoteDescription());
+       return noteMapper.update(originalNote);
+    }
+
     public List<Note> getNotesByUser(String userName){
         return noteMapper.findNotesByUserId(userMapper.getUser(userName).getUserId());
     }

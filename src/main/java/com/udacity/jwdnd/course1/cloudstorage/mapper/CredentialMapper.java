@@ -8,7 +8,7 @@ import java.util.List;
 @Mapper
 public interface CredentialMapper {
     @Select("SELECT * FROM CREDENTIALS WHERE credentialid = #{credentialId}")
-    Credential findFileById(String credentialId);
+    Credential findCredentialById(Long credentialId);
 
     @Select("SELECT * FROM CREDENTIALS WHERE userid = #{userId}")
     List<Credential> findCredentialsByUserId(Integer userId);

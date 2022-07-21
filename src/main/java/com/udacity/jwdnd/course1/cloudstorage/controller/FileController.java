@@ -1,7 +1,13 @@
 package com.udacity.jwdnd.course1.cloudstorage.controller;
 
 import com.udacity.jwdnd.course1.cloudstorage.dto.FileDTO;
+import com.udacity.jwdnd.course1.cloudstorage.entity.File;
 import com.udacity.jwdnd.course1.cloudstorage.services.FileService;
+import org.springframework.core.io.ByteArrayResource;
+import org.springframework.core.io.Resource;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -40,12 +46,21 @@ public class FileController {
         return "redirect:/result";
     }
 
-    @GetMapping("/{fileId}")
-    public String deleteFile(Authentication authentication, RedirectAttributes redirectAttributes, Model model, @PathVariable("fileId") Long fileId){
+    @GetMapping("/delete/{fileId}")
+    public String deleteFile(RedirectAttributes redirectAttributes, @PathVariable("fileId") Long fileId){
         fileService.deleteFile(fileId);
         redirectAttributes.addFlashAttribute("success", true);
         redirectAttributes.addFlashAttribute("message", "File deleted");
         return "redirect:/result";
+    }
+
+    @GetMapping("/{fileId}")
+    public ResponseEntity<Resource> viewFile(@PathVariable("fileId") Long fileId){
+        File file = fileService.getFileById(fileId);
+        return ResponseEntity.ok()
+                .contentType(MediaType.parseMediaType( file.getContentType()))
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + file.getFileName() + "\"")
+                .body(new ByteArrayResource(file.getFileData()));
     }
 
 }

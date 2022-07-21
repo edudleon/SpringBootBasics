@@ -31,4 +31,8 @@ public class FileService {
     public void deleteFile(Long fileId){
         fileMapper.delete(fileId);
     }
+
+    public File getFileById(Long fileId){
+        return fileMapper.findFileById(fileId);
+    }
 }

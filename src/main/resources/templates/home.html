@@ -51,8 +51,8 @@
                                 <tbody>
                                 <tr th:each="file: ${userFiles}">
                                     <td>
-                                        <a target="_blank" class="btn btn-success">View</a>
-                                        <a th:href="@{'/files/' + ${file.fileId}}" class="btn btn-danger">Delete</a>
+                                        <a th:href="@{'/files/' + ${file.fileId}}" target="_blank" class="btn btn-success">View</a>
+                                        <a th:href="@{'/files/delete/' + ${file.fileId}}" class="btn btn-danger">Delete</a>
                                     </td>
                                     <th th:text="${file.fileName}" scope="row">ExampleFile.txt</th>
                                 </tr>
@@ -77,8 +77,9 @@
                                 <tbody>
                                     <tr th:each="note: ${userNotes}">
                                         <td>
-                                            <button type="button" class="btn btn-success">Edit</button>
-                                            <a th:href="@{'/notes/' + ${note.noteId}}" class="btn btn-danger">Delete</a>
+                                            <button type="button" th:attr="data-id=${note.noteId}, data-title=${note.noteTitle}, data-desc=${note.noteDescription}"
+                                                    th:onclick="showNoteModal(this.getAttribute('data-id'), this.getAttribute('data-title'), this.getAttribute('data-desc'));" class="btn btn-success">Edit</button>
+                                            <a th:href="@{'/notes/delete/' + ${note.noteId}}" class="btn btn-danger">Delete</a>
                                         </td>
                                         <th scope="row" th:text="${note.noteTitle}">Example Note Title</th>
                                         <td th:text="${note.noteDescription}">Example Note Description </td>
@@ -98,7 +99,7 @@
                                     </div>
                                     <div class="modal-body">
                                         <form action="#" th:object="${noteForm}" th:action="@{/notes}" method="POST">
-                                            <input type="hidden" name="noteId" id="note-id">
+                                            <input type="hidden" th:field="*{noteId}" name="noteId" id="note-id">
                                             <div class="form-group">
                                                 <label for="note-title" class="col-form-label">Title</label>
                                                 <input type="text" th:field="*{noteTitle}" name= "noteTitle" class="form-control" id="note-title" maxlength="20" required>
@@ -136,8 +137,9 @@
                                 <tbody>
                                 <tr th:each="credential: ${userCredentials}">
                                     <td>
-                                        <button type="button" class="btn btn-success">Edit</button>
-                                        <a th:href="@{'/credentials/' + ${credential.credentialId}}" class="btn btn-danger">Delete</a>
+                                        <button type="button" th:attr="cred-id=${credential.credentialId}, cred-url=${credential.url}, cred-username=${credential.username}, cred-password=${encryptionService.decryptValue({credential.password}, {credential.key})}"
+                                                th:onclick="showCredentialModal(this.getAttribute('cred-id'), this.getAttribute('cred-url'), this.getAttribute('cred-username'), this.getAttribute('cred-password'));" class="btn btn-success">Edit</button>
+                                        <a th:href="@{'/credentials/delete/' + ${credential.credentialId}}" class="btn btn-danger">Delete</a>
                                     </td>
                                     <th th:text="${credential.url}" scope="row">Example Credential URL</th>
                                     <td th:text="${credential.username}">Example Credential Username</td>
@@ -158,7 +160,7 @@
                                     </div>
                                     <div class="modal-body">
                                         <form action="#" th:object="${credentialForm}" th:action="@{/credentials}" method="POST">
-                                            <input type="hidden" name="credentialId" id="credential-id">
+                                            <input type="hidden" th:field="*{credentialId}" name="credentialId" id="credential-id">
                                             <div class="form-group">
                                                 <label for="credential-url" class="col-form-label">URL</label>
                                                 <input type="text" th:field="*{url}" name= "url" class="form-control" id="credential-url" maxlength="100" required>

@@ -1,12 +1,17 @@
 package com.udacity.jwdnd.course1.cloudstorage.dto;
 
 public class CredentialForm {
+
+    private Long credentialId;
     private String url;
     private String username;
     private String password;
 
-    public CredentialForm() {
-    }
+    public CredentialForm() {   }
+
+    public Long getCredentialId() {return credentialId;}
+
+    public void setCredentialId(Long credentialId) {this.credentialId = credentialId;}
 
     public String getUrl() {
         return url;

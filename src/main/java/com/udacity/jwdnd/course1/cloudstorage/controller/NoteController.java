@@ -19,25 +19,42 @@ public class NoteController {
     }
 
     @PostMapping
-    public String createNote(Authentication authentication, RedirectAttributes redirectAttributes, NoteForm noteForm, Model model){
+    public String createOrUpdateNote(Authentication authentication, RedirectAttributes redirectAttributes, NoteForm noteForm, Model model){
         redirectAttributes.addFlashAttribute("activeTab", "notes");
-        try{
-            Integer result = noteService.createNote(noteForm, authentication.getName());
-            if(result > 0){
-                redirectAttributes.addFlashAttribute("success", true);
-                redirectAttributes.addFlashAttribute("message", "New note created");
-            }else{
+        if(noteForm.getNoteId() == null ){
+            try{
+                Integer result = noteService.createNote(noteForm, authentication.getName());
+                if(result > 0){
+                    redirectAttributes.addFlashAttribute("success", true);
+                    redirectAttributes.addFlashAttribute("message", "New note created");
+                }else{
+                    redirectAttributes.addFlashAttribute("success", false);
+                    redirectAttributes.addFlashAttribute("message", "Error while creating note.");
+                }
+            }catch(Exception e){
                 redirectAttributes.addFlashAttribute("success", false);
                 redirectAttributes.addFlashAttribute("message", "Error while creating note.");
             }
-        }catch(Exception e){
-            redirectAttributes.addFlashAttribute("success", false);
-            redirectAttributes.addFlashAttribute("message", "Error while creating note.");
+        }else{
+            try{
+                Integer result = noteService.updateNote(noteForm);
+                if(result > 0){
+                    redirectAttributes.addFlashAttribute("success", true);
+                    redirectAttributes.addFlashAttribute("message", "Note successfully updated");
+                }else{
+                    redirectAttributes.addFlashAttribute("success", false);
+                    redirectAttributes.addFlashAttribute("message", "Error while updating note.");
+                }
+            }catch(Exception e){
+                redirectAttributes.addFlashAttribute("success", false);
+                redirectAttributes.addFlashAttribute("message", "Error while updating note.");
+            }
         }
+
         return "redirect:/result";
     }
 
-    @GetMapping("/{noteId}")
+    @GetMapping("/delete/{noteId}")
     public String deleteNote(Authentication authentication, RedirectAttributes redirectAttributes, Model model, @PathVariable("noteId") Long noteId){
         noteService.deleteNote(noteId);
         redirectAttributes.addFlashAttribute("success", true);
